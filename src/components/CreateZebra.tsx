@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-// Bilder-Import (umbenannte Dateien ohne Klammern/Leerzeichen!)
+// Bilder-Import
 import Image00 from "../images/Image_Main.png";
 import Image01 from "../images/Image_1.png";
 import Image02 from "../images/Image_2.png";
@@ -53,13 +53,13 @@ function shuffleArray<T>(array: T[]): T[] {
   return newArray;
 }
 
-// Neues Karten-Array erstellen
-function createArray(): string[] {
+// Neues Karten-Array erstellen, Rückgabe auch des zufälligen „richtigen“ Bildes
+function createArray(): { array: string[]; correct: string } {
   const randomNumber = Math.floor(Math.random() * Images.length);
   const randomImage = Images[randomNumber];
 
   const randomArray = [
-    randomImage,
+    randomImage, // dieses Bild ist das zu findende
     Image00,
     Image00,
     Image00,
@@ -70,43 +70,55 @@ function createArray(): string[] {
     Image00,
   ];
 
-  return shuffleArray(randomArray);
+  return { array: shuffleArray(randomArray), correct: randomImage };
 }
 
 export default function CreateZebra() {
-  const [randomArray, setRandomArray] = useState<string[]>(createArray());
+  const [{ array: randomArray, correct }, setRandomArray] = useState<{
+    array: string[];
+    correct: string;
+  }>(createArray());
   const [isPlaying, setIsPlaying] = useState(true);
 
-  // Klick-Handler
-  const handleClick = (item: string) => {
-    const lastPart = item.slice(-8, -4); // entspricht früher substring
-    const play = lastPart === "Main";
-    setIsPlaying(play);
+  // Mobile Double-Tap
+  const [lastTap, setLastTap] = useState<number>(0);
+  const DOUBLE_TAP_DELAY = 300; // ms
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // Mobile Double-Tap Handler
+  const handleTap = (item: string) => {
+    if (!isMobile) return;
+    const now = Date.now();
+    if (now - lastTap < DOUBLE_TAP_DELAY) {
+      if (item === correct) setIsPlaying(false); // nur das zufällige Bild gewinnt
+    }
+    setLastTap(now);
   };
 
-  // Neues Spiel starten
   const handleNewGame = () => {
-    setRandomArray(createArray());
+    const newData = createArray();
+    setRandomArray(newData);
     setIsPlaying(true);
+    setLastTap(0);
   };
 
-  // Playfield-Komponente
-  const Playfield = () => {
-    return randomArray.map((item, index) => (
-      <div className="cards" key={index}>
-        <button className="cards-btn">
-          <img
-            onClick={() => handleClick(item)}
-            src={item}
-            alt={`Zebra ${index}`}
-            width="200"
-          />
-        </button>
-      </div>
-    ));
-  };
+  const Playfield = () => (
+    <div className="playfield">
+      {randomArray.map((item, index) => (
+        <div className="cards" key={index}>
+          <button
+            className="cards-btn"
+            onClick={() => handleTap(item)}
+            onDoubleClick={() => !isMobile && item === correct && setIsPlaying(false)}
+            type="button"
+          >
+            <img src={item} alt={`Zebra ${index}`} width="200" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
 
-  // YouWin-Komponente
   const YouWin = () => (
     <div className="win">
       <h2>Du hast gewonnen! 🎉</h2>
