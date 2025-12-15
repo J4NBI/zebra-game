@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // Bilder-Import
 import Image00 from "../images/Image_Main.png";
@@ -73,17 +73,40 @@ function createArray(): { array: string[]; correct: string } {
   return { array: shuffleArray(randomArray), correct: randomImage };
 }
 
+// Preload Funktion
+function preloadImages(array: string[], callback: () => void) {
+  let loadedCount = 0;
+  array.forEach((src) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      loadedCount++;
+      if (loadedCount === array.length) callback();
+    };
+  });
+}
+
 export default function CreateZebra() {
   const [{ array: randomArray, correct }, setRandomArray] = useState<{
     array: string[];
     correct: string;
-  }>(createArray());
+  }>({ array: [], correct: "" });
   const [isPlaying, setIsPlaying] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   // Mobile Double-Tap
   const [lastTap, setLastTap] = useState<number>(0);
   const DOUBLE_TAP_DELAY = 300; // ms
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // Array erstellen und preloaden beim Start
+  useEffect(() => {
+    const newData = createArray();
+    preloadImages(newData.array, () => {
+      setRandomArray(newData);
+      setLoading(false);
+    });
+  }, []);
 
   // Mobile Double-Tap Handler
   const handleTap = (item: string) => {
@@ -96,10 +119,14 @@ export default function CreateZebra() {
   };
 
   const handleNewGame = () => {
+    setLoading(true);
     const newData = createArray();
-    setRandomArray(newData);
-    setIsPlaying(true);
-    setLastTap(0);
+    preloadImages(newData.array, () => {
+      setRandomArray(newData);
+      setIsPlaying(true);
+      setLastTap(0);
+      setLoading(false);
+    });
   };
 
   const Playfield = () => (
@@ -127,6 +154,8 @@ export default function CreateZebra() {
       </button>
     </div>
   );
+
+  if (loading) return <div>Lädt…</div>;
 
   return <>{isPlaying ? <Playfield /> : <YouWin />}</>;
 }
