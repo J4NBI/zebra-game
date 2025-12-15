@@ -22,6 +22,11 @@ h2 {
   font-size: 2rem;
 }
 
+.playfield{
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+}
+
 .App {
   height: 100vh;
   width: 600px;
@@ -53,10 +58,6 @@ img {
   display: block;
   padding: 0px;
   transition: all 1s ease-in-out;
-}
-
-img:hover {
-  transform: scale(1.5);
 }
 
 button {
